@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Door-to-Door Canvassing App</title>
+    <title>Canvassing Command Center</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* Mobile-first responsive design */
+        /* Base Styles */
         #map { 
             height: 300px;
             width: 100%;
@@ -31,17 +31,6 @@
         .voter-card.visited { border-left-color: #28a745; background-color: #f8f9fa; }
         .voter-card.current { border-left-color: #ffc107; background-color: #fff3cd; }
         .voter-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        
-        .proximity-indicator {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 5px;
-        }
-        .proximity-good { background-color: #28a745; }
-        .proximity-medium { background-color: #ffc107; }
-        .proximity-far { background-color: #dc3545; }
         
         .status-badge {
             font-size: 0.75rem;
@@ -79,46 +68,95 @@
             padding: 15px;
         }
         
-        .demo-controls {
-            background: #f8f9fa;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-        }
-        
-        /* Mobile optimizations */
+        /* Mobile optimizations for field work */
         @media (max-width: 767px) {
-            .container-fluid { padding: 0.5rem; }
-            
-            .card-body { padding: 0.75rem; }
-            
-            .voter-card .card-body { padding: 0.5rem; }
-            
+            .container-fluid { padding: 0.25rem; }
+            .card-body { padding: 0.5rem; }
+            .voter-card .card-body { padding: 0.4rem; }
             .btn-sm { 
-                padding: 0.25rem 0.5rem;
-                font-size: 0.75rem;
+                padding: 0.375rem 0.75rem;
+                font-size: 0.8rem;
+                min-height: 44px;
+            }
+            .form-select-sm, .form-control { 
+                padding: 0.5rem 0.75rem;
+                font-size: 0.9rem;
+                min-height: 44px;
+            }
+            .summary-card { padding: 8px; }
+            .mobile-stack { margin-bottom: 0.75rem; }
+            .form-check-input { 
+                transform: scale(1.3);
+                margin-right: 0.5rem;
             }
             
-            .form-select-sm, .form-control { 
-                padding: 0.375rem 0.75rem;
+            /* Larger touch targets for mobile */
+            .btn { 
+                min-height: 48px;
                 font-size: 0.9rem;
             }
             
-            .summary-card { padding: 10px; }
+            /* Better spacing on mobile */
+            .main-content { padding-top: 70px; }
             
-            /* Stack columns on mobile */
-            .mobile-stack { 
-                margin-bottom: 1rem;
+            /* Enhanced message panel for mobile */
+            .canvasser-status {
+                position: fixed;
+                top: 60px;
+                left: 5px;
+                right: 5px;
+                max-width: none;
+                font-size: 0.75rem;
+                padding: 5px 8px;
+                background: rgba(0,0,0,0.95);
+                border-radius: 6px;
+                z-index: 1000;
             }
-            
-            /* Better touch targets */
-            .btn { min-height: 44px; }
-            .form-check-input { transform: scale(1.2); }
-            
-            /* Optimize voter list for mobile */
-            #voterList {
-                max-height: 400px;
-            }
+        }
+
+        /* GPS Status Indicators */
+        .gps-status {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1001;
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+        }
+
+        .gps-status.good { background: rgba(40, 167, 69, 0.9); }
+        .gps-status.warning { background: rgba(255, 193, 7, 0.9); color: black; }
+        .gps-status.error { background: rgba(220, 53, 69, 0.9); }
+
+        /* Proximity validation */
+        .proximity-warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .proximity-good {
+            background: #d1e7dd;
+            border: 1px solid #a3cfbb;
+            color: #0f5132;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        /* Location path tracking */
+        .location-log {
+            font-size: 0.75rem;
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 5px 0;
         }
         
         /* Party color indicators */
@@ -149,193 +187,228 @@
             margin-right: 8px;
             border: 1px solid #fff;
         }
+
+        /* Dashboard specific styles */
+        .dashboard-switcher {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1001;
+        }
+
+        /* Field Dashboard - Clean mobile interface */
+        .field-dashboard .main-content {
+            padding-top: 60px;
+        }
+
+        .field-dashboard .current-assignment {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* Admin Dashboard - Full monitoring interface */
+        .admin-dashboard {
+            background: #f8f9fa;
+        }
+
+        .canvasser-tracker {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #007bff;
+        }
+
+        .canvasser-tracker.active {
+            border-left-color: #28a745;
+            background: #f8fff9;
+        }
+
+        .canvasser-tracker.inactive {
+            border-left-color: #dc3545;
+            background: #fff5f5;
+        }
+
+        .real-time-stats {
+            background: linear-gradient(135deg, #6f42c1 0%, #e83e8c 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        /* Hide/Show based on dashboard mode */
+        .field-only { display: none; }
+        .admin-only { display: none; }
+        
+        .field-dashboard .field-only { display: block; }
+        .admin-dashboard .admin-only { display: block; }
+
+        /* Voter list modal for field view */
+        .voter-list-modal .modal-body {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
     </style>
 </head>
-<body>
+<body class="field-dashboard">
+    <!-- Dashboard Switcher -->
+    <div class="dashboard-switcher">
+        <div class="btn-group" role="group">
+            <button class="btn btn-sm btn-primary" onclick="switchToField()" id="fieldBtn">
+                <i class="fas fa-mobile-alt"></i> Field
+            </button>
+            <button class="btn btn-sm btn-outline-primary" onclick="switchToAdmin()" id="adminBtn">
+                <i class="fas fa-desktop"></i> Admin
+            </button>
+        </div>
+    </div>
+
+    <!-- Canvasser Status (Field View) -->
+    <div class="canvasser-status field-only">
+        <div><i class="fas fa-user"></i> <span id="canvasserName">Demo User</span></div>
+        <div><i class="fas fa-location-dot"></i> Status: <span id="locationStatus">Searching...</span></div>
+        <div><i class="fas fa-clock"></i> Time: <span id="timeInArea">0</span>s</div>
+    </div>
+
     <div class="container-fluid">
-        <!-- Header -->
-        <nav class="navbar navbar-dark bg-primary mb-3">
-            <div class="container-fluid">
-                <span class="navbar-brand mb-0 h1">
-                    <i class="fas fa-door-open"></i> Canvassing Command Center
-                </span>
-                <span class="navbar-text">
-                    <i class="fas fa-users"></i> <span id="totalVoters">0</span> Voters | 
-                    <i class="fas fa-check"></i> <span id="visitedCount">0</span> Visited
-                </span>
-            </div>
-        </nav>
-
-        <!-- Demo Controls -->
-        <div class="demo-controls">
-            <h5><i class="fas fa-gamepad"></i> Demo Controls</h5>
-            <button class="btn btn-sm btn-success me-2" onclick="simulateGPSTracking()">
-                <i class="fas fa-location-arrow"></i> Start GPS Simulation
-            </button>
-            <button class="btn btn-sm btn-warning me-2" onclick="generateDemoData()">
-                <i class="fas fa-refresh"></i> Regenerate Demo Data
-            </button>
-            <button class="btn btn-sm btn-info" onclick="autoVisitNearby()">
-                <i class="fas fa-magic"></i> Auto-Visit Nearby (Demo)
-            </button>
-        </div>
-
-        <!-- Canvasser Status -->
-        <div class="canvasser-status">
-            <div><i class="fas fa-user"></i> Canvasser: Demo User</div>
-            <div><i class="fas fa-location-dot"></i> Status: <span id="locationStatus">Searching...</span></div>
-            <div><i class="fas fa-clock"></i> Time in Area: <span id="timeInArea">0</span>s</div>
-        </div>
-
-        <div class="row">
-            <!-- Mobile-first layout -->
-            
-            <!-- Map Panel - Show first on mobile -->
-            <div class="col-12 col-lg-4 order-2 order-lg-2 mobile-stack">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0"><i class="fas fa-map"></i> Map</h6>
-                        <small class="text-muted">Party Colors</small>
-                    </div>
-                    <div class="card-body p-0 position-relative">
-                        <div id="map"></div>
-                        <!-- Map Legend -->
-                        <div class="map-legend position-absolute" style="bottom: 10px; left: 10px; z-index: 1000;">
-                            <div class="legend-item">
-                                <div class="legend-color" style="background-color: #dc3545;"></div>
-                                <span>Republican</span>
-                            </div>
-                            <div class="legend-item">
-                                <div class="legend-color" style="background-color: #007bff;"></div>
-                                <span>Democrat</span>
-                            </div>
-                            <div class="legend-item">
-                                <div class="legend-color" style="background-color: #6c757d;"></div>
-                                <span>Independent</span>
-                            </div>
-                        </div>
+        <!-- =========================== FIELD DASHBOARD =========================== -->
+        <div class="field-only">
+            <!-- Field Header -->
+            <nav class="navbar navbar-dark bg-success mb-3 fixed-top">
+                <div class="container-fluid">
+                    <span class="navbar-brand mb-0 h1">
+                        <i class="fas fa-door-open"></i> Field Canvassing
+                    </span>
+                    <div>
+                        <button class="btn btn-outline-light btn-sm me-2" data-bs-toggle="modal" data-bs-target="#filterModal">
+                            <i class="fas fa-filter"></i> Filter
+                        </button>
+                        <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#voterListModal">
+                            <i class="fas fa-list"></i> My List
+                        </button>
                     </div>
                 </div>
-            </div>
+            </nav>
 
-            <!-- Filters and Voter List -->
-            <div class="col-12 col-lg-4 order-1 order-lg-1 mobile-stack">
-                <!-- Filters -->
-                <div class="card mb-3">
-                    <div class="card-header">
-                        <h6 class="mb-0"><i class="fas fa-filter"></i> Filters</h6>
-                    </div>
+            <div class="main-content">
+                <!-- Assignment Info -->
+                <div class="card mb-3" style="background: linear-gradient(135deg, #17a2b8 0%, #6610f2 100%); color: white;">
                     <div class="card-body">
-                        <div class="row g-2">
-                            <div class="col-6">
-                                <label class="form-label small">Zip Code</label>
-                                <select class="form-select form-select-sm" id="zipFilter" onchange="applyFilters()">
-                                    <option value="">All Zips</option>
-                                </select>
+                        <h6><i class="fas fa-clipboard-list"></i> Today's Assignment</h6>
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="h5" id="assignedCount">156</div>
+                                <small>Assigned</small>
                             </div>
-                            <div class="col-6">
-                                <label class="form-label small">Party</label>
-                                <select class="form-select form-select-sm" id="partyFilter" onchange="applyFilters()">
-                                    <option value="">All Parties</option>
-                                    <option value="Democrat">Democrat</option>
-                                    <option value="Republican">Republican</option>
-                                    <option value="Independent">Independent</option>
-                                </select>
+                            <div class="col-4">
+                                <div class="h5" id="fieldVisitedCount">23</div>
+                                <small>Completed</small>
                             </div>
-                        </div>
-                        <div class="row g-2 mt-1">
-                            <div class="col-6">
-                                <label class="form-label small">Street</label>
-                                <select class="form-select form-select-sm" id="streetFilter" onchange="applyFilters()">
-                                    <option value="">All Streets</option>
-                                </select>
+                            <div class="col-4">
+                                <div class="h5" id="fieldProgressPercent">15%</div>
+                                <small>Progress</small>
                             </div>
-                            <div class="col-6">
-                                <label class="form-label small">Precinct</label>
-                                <select class="form-select form-select-sm" id="precinctFilter" onchange="applyFilters()">
-                                    <option value="">All Precincts</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="row g-2 mt-1">
-                            <div class="col-12">
-                                <label class="form-label small">Status</label>
-                                <select class="form-select form-select-sm" id="statusFilter" onchange="applyFilters()">
-                                    <option value="">All Status</option>
-                                    <option value="visited">Visited</option>
-                                    <option value="not-visited">Not Visited</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="mt-2">
-                            <button class="btn btn-outline-secondary btn-sm w-100" onclick="clearFilters()">
-                                <i class="fas fa-times"></i> Clear Filters
-                            </button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Voter List -->
-                <div class="card">
-                    <div class="card-header">
-                        <h6 class="mb-0"><i class="fas fa-list"></i> Voter List <span class="badge bg-secondary" id="listCount">0</span></h6>
+                <!-- Messages Panel -->
+                <div class="card mb-3" id="messagesPanel" style="display: none;">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="fas fa-bell text-warning"></i> New Message</h6>
+                        <button class="btn btn-sm btn-outline-danger" onclick="dismissMessage()">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
-                    <div class="card-body" id="voterList">
-                        <!-- Voter cards will be populated here -->
+                    <div class="card-body" id="messageContent">
+                        <!-- Message content -->
                     </div>
                 </div>
-            </div>
-
-            <!-- Current Voter & Notes -->
-            <div class="col-12 col-lg-4 order-3 order-lg-3 mobile-stack">
-                <!-- Current Voter -->
-                <div class="card mb-3" id="currentVoterCard" style="display: none;">
-                    <div class="card-header bg-warning">
-                        <h5><i class="fas fa-crosshairs"></i> Current Voter</h5>
+                <!-- Current Assignment -->
+                <div class="current-assignment" id="currentAssignment" style="display: none;">
+                    <h6><i class="fas fa-crosshairs"></i> Current Assignment</h6>
+                    <div id="currentVoterInfo"></div>
+                    <div class="mt-2">
+                        <button class="btn btn-light btn-sm" onclick="getDirections()">
+                            <i class="fas fa-route"></i> Get Directions
+                        </button>
+                        <button class="btn btn-outline-light btn-sm" onclick="markNotHome()">
+                            <i class="fas fa-home"></i> Not Home
+                        </button>
                     </div>
-                    <div class="card-body" id="currentVoterInfo">
-                        <!-- Current voter info -->
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="row mb-3">
+                    <div class="col-4">
+                        <button class="btn btn-primary w-100" onclick="findNearestVoter()">
+                            <i class="fas fa-location-arrow"></i><br>
+                            <small>Find Nearest</small>
+                        </button>
+                    </div>
+                    <div class="col-4">
+                        <button class="btn btn-success w-100" onclick="startLocationTracking()" id="trackingBtn">
+                            <i class="fas fa-play"></i><br>
+                            <small>Start Tracking</small>
+                        </button>
+                    </div>
+                    <div class="col-4">
+                        <button class="btn btn-info w-100" onclick="showLocationLog()">
+                            <i class="fas fa-history"></i><br>
+                            <small>Location Log</small>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Compact Map -->
+                <div class="card mb-3">
+                    <div class="card-body p-0">
+                        <div id="map"></div>
                     </div>
                 </div>
 
                 <!-- Notes Form -->
-                <div class="card mb-3">
+                <div class="card">
                     <div class="card-header">
-                        <h5><i class="fas fa-pen"></i> Canvassing Notes</h5>
+                        <h6 class="mb-0"><i class="fas fa-pen"></i> Visit Notes</h6>
                     </div>
                     <div class="card-body">
+                        <!-- Location Validation -->
+                        <div id="locationValidation" class="proximity-warning" style="display: none;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>Location Required:</strong> You must be within 20 meters of the voter address to complete this form.
+                        </div>
+
                         <form id="notesForm">
-                            <div class="mb-3">
-                                <label class="form-label">Voter Response</label>
-                                <div class="row">
-                                    <div class="col-4">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="present">
-                                            <label class="form-check-label" for="present">Present</label>
-                                        </div>
+                            <div class="row mb-3">
+                                <div class="col-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="present">
+                                        <label class="form-check-label" for="present">Present</label>
                                     </div>
-                                    <div class="col-4">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="willVote">
-                                            <label class="form-check-label" for="willVote">Will Vote</label>
-                                        </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="willVote">
+                                        <label class="form-check-label" for="willVote">Will Vote</label>
                                     </div>
-                                    <div class="col-4">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="nextTime">
-                                            <label class="form-check-label" for="nextTime">Next Time</label>
-                                        </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="nextTime">
+                                        <label class="form-check-label" for="nextTime">Next Time</label>
                                     </div>
                                 </div>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Notes</label>
-                                <textarea class="form-control" id="voterNotes" rows="3" placeholder="Enter conversation notes..."></textarea>
+                                <textarea class="form-control" id="voterNotes" rows="3" placeholder="Conversation notes..."></textarea>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Support Level</label>
                                 <select class="form-select" id="supportLevel">
-                                    <option value="">Select...</option>
+                                    <option value="">Support Level...</option>
                                     <option value="strong-support">Strong Support</option>
                                     <option value="lean-support">Lean Support</option>
                                     <option value="undecided">Undecided</option>
@@ -343,23 +416,408 @@
                                     <option value="strong-oppose">Strong Oppose</option>
                                 </select>
                             </div>
-                            <button type="submit" class="btn btn-primary w-100">
-                                <i class="fas fa-save"></i> Save & Mark Visited
+                            <button type="submit" class="btn btn-success w-100" id="submitBtn" disabled>
+                                <i class="fas fa-save"></i> Complete Visit
                             </button>
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle"></i> Form will be enabled when you're within 20m of the address.
+                                </small>
+                            </div>
                         </form>
                     </div>
                 </div>
+            </div>
+        </div>
 
-                <!-- Daily Summary -->
-                <div class="card">
-                    <div class="card-header">
-                        <h5><i class="fas fa-chart-bar"></i> Today's Summary</h5>
-                        <button class="btn btn-sm btn-outline-primary float-end" onclick="generateSummary()">
-                            <i class="fas fa-refresh"></i> Update
-                        </button>
+        <!-- =========================== ADMIN DASHBOARD =========================== -->
+        <div class="admin-only">
+            <!-- Admin Header -->
+            <nav class="navbar navbar-dark bg-primary mb-3">
+                <div class="container-fluid">
+                    <span class="navbar-brand mb-0 h1">
+                        <i class="fas fa-chart-line"></i> Campaign Control Center
+                    </span>
+                    <span class="navbar-text">
+                        <i class="fas fa-users"></i> <span id="totalVoters">0</span> Voters | 
+                        <i class="fas fa-check"></i> <span id="visitedCount">0</span> Visited
+                    </span>
+                </div>
+            </nav>
+
+            <div class="row">
+                <!-- Left Panel - Assignment Management -->
+                <div class="col-lg-4">
+                    <!-- Assignment Control -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-tasks"></i> Assignment Management</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label small">Total Voters to Assign</label>
+                                <input type="number" class="form-control form-control-sm" id="totalToAssign" value="1000" min="1">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small">Active Field Workers</label>
+                                <input type="number" class="form-control form-control-sm" id="activeWorkers" value="10" min="1">
+                            </div>
+                            <div class="mb-3">
+                                <small class="text-muted">
+                                    Per worker: <span id="perWorkerCount">100</span> voters
+                                </small>
+                            </div>
+                            <button class="btn btn-primary btn-sm w-100 mb-2" onclick="assignVotersToWorkers()">
+                                <i class="fas fa-share-alt"></i> Assign to Workers
+                            </button>
+                            <button class="btn btn-outline-info btn-sm w-100" onclick="exportToGoogleSheets()">
+                                <i class="fas fa-table"></i> Export to Sheets
+                            </button>
+                        </div>
                     </div>
-                    <div class="card-body" id="summaryContent">
-                        <p class="text-muted">Click "Update" to generate summary</p>
+
+                    <!-- Canvasser Tracking -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-users"></i> Field Workers <span class="badge bg-success" id="activeWorkersCount">1</span></h6>
+                        </div>
+                        <div class="card-body" style="max-height: 300px; overflow-y: auto;" id="canvasserTracking">
+                            <!-- Canvasser tracking cards -->
+                        </div>
+                    </div>
+
+                    <!-- Send Message -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-paper-plane"></i> Send Message</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-2">
+                                <select class="form-select form-select-sm" id="messageTarget">
+                                    <option value="all">All Workers</option>
+                                    <option value="1">Demo User</option>
+                                </select>
+                            </div>
+                            <div class="mb-2">
+                                <textarea class="form-control form-control-sm" id="messageText" rows="2" placeholder="Type your message..."></textarea>
+                            </div>
+                            <button class="btn btn-primary btn-sm w-100" onclick="sendMessage()">
+                                <i class="fas fa-send"></i> Send Message
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Real-time Stats -->
+                    <div class="real-time-stats">
+                        <h6><i class="fas fa-bolt"></i> Live Performance</h6>
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="h4" id="activeCanvassers">1</div>
+                                <small>Active</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="h4" id="hourlyRate">12</div>
+                                <small>Per Hour</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="h4" id="completionRate">15%</div>
+                                <small>Complete</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Center Panel - Map & Voter List -->
+                <div class="col-lg-4">
+                    <!-- Filters -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-filter"></i> Filters</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <select class="form-select form-select-sm" id="zipFilter" onchange="applyFilters()">
+                                        <option value="">All Zips</option>
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <select class="form-select form-select-sm" id="partyFilter" onchange="applyFilters()">
+                                        <option value="">All Parties</option>
+                                        <option value="Democrat">Democrat</option>
+                                        <option value="Republican">Republican</option>
+                                        <option value="Independent">Independent</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row g-2 mt-1">
+                                <div class="col-6">
+                                    <select class="form-select form-select-sm" id="streetFilter" onchange="applyFilters()">
+                                        <option value="">All Streets</option>
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <select class="form-select form-select-sm" id="precinctFilter" onchange="applyFilters()">
+                                        <option value="">All Precincts</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row g-2 mt-1">
+                                <div class="col-8">
+                                    <select class="form-select form-select-sm" id="statusFilter" onchange="applyFilters()">
+                                        <option value="">All Status</option>
+                                        <option value="visited">Visited</option>
+                                        <option value="not-visited">Not Visited</option>
+                                    </select>
+                                </div>
+                                <div class="col-4">
+                                    <button class="btn btn-outline-secondary btn-sm w-100" onclick="clearFilters()">Clear</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Voter List (Admin) -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-list"></i> Voter List <span class="badge bg-secondary" id="listCount">0</span></h6>
+                        </div>
+                        <div class="card-body" style="max-height: 200px; overflow-y: auto;" id="voterList">
+                            <!-- Voter cards -->
+                        </div>
+                    </div>
+
+                    <!-- Admin Map -->
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0"><i class="fas fa-map"></i> Territory Map</h6>
+                            <small class="text-muted">Party Colors</small>
+                        </div>
+                        <div class="card-body p-0 position-relative">
+                            <div id="map"></div>
+                            <!-- Map Legend -->
+                            <div class="map-legend position-absolute" style="bottom: 10px; left: 10px; z-index: 1000;">
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: #dc3545;"></div>
+                                    <span>Republican</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: #007bff;"></div>
+                                    <span>Democrat</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: #6c757d;"></div>
+                                    <span>Independent</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Panel - Reports & Message Log -->
+                <div class="col-lg-4">
+                    <!-- Individual Worker Reports -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-user-chart"></i> Worker Performance</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-2">
+                                <select class="form-select form-select-sm" id="workerSelect" onchange="generateWorkerReport()">
+                                    <option value="">Select Worker...</option>
+                                    <option value="1">Demo User</option>
+                                </select>
+                            </div>
+                            <div id="workerReport">
+                                <p class="text-muted">Select a worker to view their performance report.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Message Log -->
+                    <div class="card mb-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0"><i class="fas fa-comments"></i> Message Log</h6>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="clearMessageLog()">
+                                <i class="fas fa-trash"></i> Clear
+                            </button>
+                        </div>
+                        <div class="card-body" style="max-height: 200px; overflow-y: auto;" id="messageLog">
+                            <p class="text-muted">No messages sent yet.</p>
+                        </div>
+                    </div>
+
+                    <!-- Campaign Summary -->
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0"><i class="fas fa-chart-bar"></i> Campaign Summary</h6>
+                            <button class="btn btn-sm btn-outline-primary" onclick="generateSummary()">
+                                <i class="fas fa-refresh"></i> Update
+                            </button>
+                        </div>
+                        <div class="card-body" id="summaryContent">
+                            <p class="text-muted">Click "Update" to generate summary</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enhanced Filter Modal for Field View -->
+    <div class="modal fade" id="filterModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-filter"></i> Filter My Assignments</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label small">Party</label>
+                            <select class="form-select form-select-sm" id="fieldPartyFilter">
+                                <option value="">All Parties</option>
+                                <option value="Democrat">Democrat</option>
+                                <option value="Republican">Republican</option>
+                                <option value="Independent">Independent</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Status</label>
+                            <select class="form-select form-select-sm" id="fieldStatusFilter">
+                                <option value="">All Status</option>
+                                <option value="visited">Completed</option>
+                                <option value="not-visited">Pending</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row g-2 mt-2">
+                        <div class="col-6">
+                            <label class="form-label small">Age Group</label>
+                            <select class="form-select form-select-sm" id="fieldAgeFilter">
+                                <option value="">All Ages</option>
+                                <option value="18-25">18-25</option>
+                                <option value="26-35">26-35</option>
+                                <option value="36-45">36-45</option>
+                                <option value="46-55">46-55</option>
+                                <option value="56-65">56-65</option>
+                                <option value="65+">65+</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Race/Ethnicity</label>
+                            <select class="form-select form-select-sm" id="fieldRaceFilter">
+                                <option value="">All Races</option>
+                                <option value="White">White</option>
+                                <option value="Hispanic">Hispanic/Latino</option>
+                                <option value="Black">Black/African American</option>
+                                <option value="Asian">Asian</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row g-2 mt-2">
+                        <div class="col-6">
+                            <label class="form-label small">Street</label>
+                            <select class="form-select form-select-sm" id="fieldStreetFilter">
+                                <option value="">All Streets</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Gender</label>
+                            <select class="form-select form-select-sm" id="fieldGenderFilter">
+                                <option value="">All Genders</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" onclick="clearFieldFilters()">Clear</button>
+                    <button type="button" class="btn btn-primary" onclick="applyFieldFilters()" data-bs-dismiss="modal">Apply Filters</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Location Log Modal -->
+    <div class="modal fade" id="locationLogModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-map-marked-alt"></i> Location & Time Log</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Total Distance:</strong> <span id="totalDistance">0.0 km</span>
+                        </div>
+                        <div class="col-6">
+                            <strong>Total Time:</strong> <span id="totalTime">0 minutes</span>
+                        </div>
+                    </div>
+                    <div id="locationLogContent" style="max-height: 400px; overflow-y: auto;">
+                        <p class="text-muted">Start location tracking to see your path log.</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-info" onclick="exportLocationData()">
+                        <i class="fas fa-download"></i> Export KML
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Voter List Modal for Field View -->
+    <div class="modal fade voter-list-modal" id="voterListModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-list"></i> My Assigned Voters</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Quick Stats -->
+                    <div class="row mb-3">
+                        <div class="col-4 text-center">
+                            <div class="h5 text-primary" id="modalAssignedCount">156</div>
+                            <small class="text-muted">Assigned</small>
+                        </div>
+                        <div class="col-4 text-center">
+                            <div class="h5 text-success" id="modalCompletedCount">23</div>
+                            <small class="text-muted">Completed</small>
+                        </div>
+                        <div class="col-4 text-center">
+                            <div class="h5 text-warning" id="modalPendingCount">133</div>
+                            <small class="text-muted">Pending</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Filters -->
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <select class="form-select form-select-sm" id="modalPartyFilter" onchange="applyModalFilters()">
+                                <option value="">All Parties</option>
+                                <option value="Democrat">Democrat</option>
+                                <option value="Republican">Republican</option>
+                                <option value="Independent">Independent</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <select class="form-select form-select-sm" id="modalStatusFilter" onchange="applyModalFilters()">
+                                <option value="">All Status</option>
+                                <option value="visited">Completed</option>
+                                <option value="not-visited">Pending</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="modalVoterList">
+                        <!-- Modal voter list -->
                     </div>
                 </div>
             </div>
@@ -377,22 +835,531 @@
         let currentVoter = null;
         let canvasserLocation = null;
         let locationWatchId = null;
-        let proximityTimer = null;
         let timeInCurrentArea = 0;
         let markers = {};
+        let canvasserMarker = null;
+        let isDashboardField = true;
+
+        // Simulated canvassers for admin view
+        let canvassers = [
+            {
+                id: 1,
+                name: "Demo User",
+                status: "active",
+                currentVoter: null,
+                location: { lat: 33.1507, lng: -96.8236 },
+                timeAtLocation: 0,
+                todayVisits: 0,
+                assignedVoters: [],
+                lastUpdate: new Date()
+            }
+        ];
+
+        // Message system
+        let messageLog = [];
+        let currentUserId = 1; // Simulated current field worker ID
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
             initializeMap();
             generateDemoData();
             populateFilters();
-            applyFilters(); // This will display voters and update map
+            applyFilters();
             updateCounts();
+            updateCanvasserTracking();
+            updateFieldAssignmentInfo();
+            
+            // Initialize location services
+            initializeLocationServices();
+            
+            // Simulate some initial assignments
+            setTimeout(() => {
+                assignVotersToWorkers();
+            }, 1000);
         });
+
+        // ========================== ENHANCED LOCATION SERVICES ==========================
+        
+        function initializeLocationServices() {
+            updateGPSStatus('Checking location permissions...', 'warning');
+            
+            if (!navigator.geolocation) {
+                updateGPSStatus('GPS not supported', 'error');
+                showNotification('GPS not supported on this device', 'error');
+                return;
+            }
+            
+            // Request location permission
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    updateGPSStatus('GPS ready', 'good');
+                    canvasserLocation = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude,
+                        accuracy: position.coords.accuracy,
+                        timestamp: new Date()
+                    };
+                    updateLocationSharingStatus('GPS ready - Click to start tracking');
+                },
+                (error) => {
+                    handleLocationError(error);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 300000
+                }
+            );
+        }
+
+        function startLocationTracking() {
+            if (isLocationSharingActive) {
+                stopLocationTracking();
+                return;
+            }
+
+            if (!navigator.geolocation) {
+                showNotification('GPS not available on this device', 'error');
+                return;
+            }
+
+            isLocationSharingActive = true;
+            startTrackingTime = new Date();
+            locationPath = [];
+            locationLog = [];
+            totalPathDistance = 0;
+
+            updateLocationSharingStatus('Location tracking active');
+            updateGPSStatus('Tracking active', 'good');
+            
+            const trackingBtn = document.getElementById('trackingBtn');
+            trackingBtn.innerHTML = '<i class="fas fa-stop"></i><br><small>Stop Tracking</small>';
+            trackingBtn.classList.remove('btn-success');
+            trackingBtn.classList.add('btn-danger');
+
+            // Start high-accuracy GPS tracking
+            locationWatchId = navigator.geolocation.watchPosition(
+                handleLocationUpdate,
+                handleLocationError,
+                {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 10000
+                }
+            );
+
+            // Start proximity checking
+            proximityCheckInterval = setInterval(checkProximityToCurrentVoter, 5000);
+
+            showNotification('Location tracking started', 'success');
+        }
+
+        function stopLocationTracking() {
+            if (!isLocationSharingActive) return;
+
+            isLocationSharingActive = false;
+            
+            if (locationWatchId) {
+                navigator.geolocation.clearWatch(locationWatchId);
+                locationWatchId = null;
+            }
+            
+            if (proximityCheckInterval) {
+                clearInterval(proximityCheckInterval);
+                proximityCheckInterval = null;
+            }
+
+            updateLocationSharingStatus('Location tracking stopped');
+            updateGPSStatus('Tracking stopped', 'warning');
+            
+            const trackingBtn = document.getElementById('trackingBtn');
+            trackingBtn.innerHTML = '<i class="fas fa-play"></i><br><small>Start Tracking</small>';
+            trackingBtn.classList.remove('btn-danger');
+            trackingBtn.classList.add('btn-success');
+
+            // Save final path data
+            saveFinalPathData();
+            
+            showNotification('Location tracking stopped', 'info');
+        }
+
+        function handleLocationUpdate(position) {
+            const newLocation = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+                accuracy: position.coords.accuracy,
+                timestamp: new Date(),
+                speed: position.coords.speed || 0
+            };
+
+            // Update accuracy status
+            currentAccuracy = position.coords.accuracy;
+            
+            if (currentAccuracy > 50) {
+                updateGPSStatus(`Low accuracy (${Math.round(currentAccuracy)}m)`, 'warning');
+            } else {
+                updateGPSStatus(`Good accuracy (${Math.round(currentAccuracy)}m)`, 'good');
+            }
+
+            // Calculate distance from last position
+            if (canvasserLocation) {
+                const distance = calculateDistance(
+                    canvasserLocation.lat, canvasserLocation.lng,
+                    newLocation.lat, newLocation.lng
+                ) * 1000; // Convert to meters
+
+                // Only update if moved more than 5 meters (reduce GPS noise)
+                if (distance > 5) {
+                    totalPathDistance += distance / 1000; // Convert to km
+                    locationPath.push({
+                        lat: newLocation.lat,
+                        lng: newLocation.lng,
+                        timestamp: newLocation.timestamp,
+                        accuracy: newLocation.accuracy
+                    });
+                    
+                    // Update path distance display
+                    document.getElementById('pathDistance').textContent = totalPathDistance.toFixed(2);
+                }
+            }
+
+            canvasserLocation = newLocation;
+            lastLocationUpdate = new Date();
+
+            // Update canvasser marker
+            updateCanvasserMarker();
+            
+            // Log location for admin
+            logLocationForAdmin();
+            
+            // Check proximity to current voter
+            if (currentVoter) {
+                checkProximityToCurrentVoter();
+            }
+        }
+
+        function handleLocationError(error) {
+            let errorMessage = 'Location error: ';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMessage += 'Permission denied. Please enable location access.';
+                    updateGPSStatus('Permission denied', 'error');
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMessage += 'Location unavailable.';
+                    updateGPSStatus('Location unavailable', 'error');
+                    break;
+                case error.TIMEOUT:
+                    errorMessage += 'Location timeout.';
+                    updateGPSStatus('GPS timeout', 'warning');
+                    break;
+                default:
+                    errorMessage += 'Unknown location error.';
+                    updateGPSStatus('GPS error', 'error');
+                    break;
+            }
+            
+            showNotification(errorMessage, 'error');
+            
+            if (error.code === error.PERMISSION_DENIED) {
+                updateLocationSharingStatus('Location access required for canvassing');
+            }
+        }
+
+        function checkProximityToCurrentVoter() {
+            if (!currentVoter || !canvasserLocation) {
+                locationValidationStatus = false;
+                updateFormValidation();
+                return;
+            }
+
+            const distance = calculateDistance(
+                canvasserLocation.lat, canvasserLocation.lng,
+                currentVoter.lat, currentVoter.lng
+            ) * 1000; // Convert to meters
+
+            const proximityAlert = document.getElementById('proximityAlert');
+            const proximityMessage = document.getElementById('proximityMessage');
+
+            if (distance <= PROXIMITY_THRESHOLD) {
+                // Within proximity - enable form
+                locationValidationStatus = true;
+                proximityAlert.className = 'proximity-good';
+                proximityAlert.style.display = 'block';
+                proximityMessage.textContent = `You are ${Math.round(distance)}m from ${currentVoter.name}'s address. Form enabled.`;
+                
+                // Log time at this location
+                logTimeAtLocation(currentVoter, distance);
+                
+            } else {
+                // Outside proximity - disable form
+                locationValidationStatus = false;
+                proximityAlert.className = 'proximity-warning';
+                proximityAlert.style.display = 'block';
+                proximityMessage.textContent = `You are ${Math.round(distance)}m from ${currentVoter.name}'s address. Move within 20m to enable form.`;
+            }
+
+            updateFormValidation();
+        }
+
+        function logTimeAtLocation(voter, distance) {
+            const now = new Date();
+            const logEntry = {
+                voterId: voter.id,
+                voterName: voter.name,
+                distance: distance,
+                timestamp: now,
+                duration: timeInCurrentArea
+            };
+
+            // Add to location log
+            locationLog.push(logEntry);
+            timeInCurrentArea++;
+        }
+
+        function updateFormValidation() {
+            const submitBtn = document.getElementById('submitBtn');
+            const locationValidation = document.getElementById('locationValidation');
+
+            if (locationValidationStatus && currentVoter) {
+                submitBtn.disabled = false;
+                submitBtn.className = 'btn btn-success w-100';
+                locationValidation.style.display = 'none';
+            } else {
+                submitBtn.disabled = true;
+                submitBtn.className = 'btn btn-secondary w-100';
+                if (currentVoter) {
+                    locationValidation.style.display = 'block';
+                }
+            }
+        }
+
+        function updateGPSStatus(message, status) {
+            const gpsStatus = document.getElementById('gpsStatus');
+            const gpsStatusText = document.getElementById('gpsStatusText');
+            
+            gpsStatusText.textContent = message;
+            gpsStatus.className = `gps-status ${status}`;
+        }
+
+        function updateLocationSharingStatus(message) {
+            document.getElementById('locationSharingStatus').textContent = message;
+        }
+
+        function toggleLocationSharing() {
+            if (isLocationSharingActive) {
+                stopLocationTracking();
+            } else {
+                startLocationTracking();
+            }
+        }
+
+        function logCurrentLocation() {
+            if (!canvasserLocation) {
+                showNotification('Location not available', 'warning');
+                return;
+            }
+
+            const logEntry = {
+                timestamp: new Date(),
+                lat: canvasserLocation.lat,
+                lng: canvasserLocation.lng,
+                accuracy: currentAccuracy,
+                action: 'Manual check-in',
+                voter: currentVoter ? currentVoter.name : 'No target selected'
+            };
+
+            locationLog.push(logEntry);
+            showNotification('Location logged successfully', 'success');
+        }
+
+        function logLocationForAdmin() {
+            // Update canvasser data for admin view
+            const canvasser = canvassers.find(c => c.id === currentUserId);
+            if (canvasser) {
+                canvasser.location = canvasserLocation;
+                canvasser.lastUpdate = new Date();
+                canvasser.totalDistance = totalPathDistance;
+                
+                // Add to path for KML export
+                if (!canvasser.path) canvasser.path = [];
+                canvasser.path.push({
+                    lat: canvasserLocation.lat,
+                    lng: canvasserLocation.lng,
+                    timestamp: canvasserLocation.timestamp
+                });
+            }
+        }
+
+        function showLocationLog() {
+            const modal = new bootstrap.Modal(document.getElementById('locationLogModal'));
+            
+            // Update total stats
+            const totalTimeMinutes = startTrackingTime ? Math.round((new Date() - startTrackingTime) / 60000) : 0;
+            document.getElementById('totalDistance').textContent = totalPathDistance.toFixed(2) + ' km';
+            document.getElementById('totalTime').textContent = totalTimeMinutes + ' minutes';
+            
+            // Generate log content
+            const logContent = document.getElementById('locationLogContent');
+            
+            if (locationLog.length === 0) {
+                logContent.innerHTML = '<p class="text-muted">No location data recorded yet. Start tracking to see your movement log.</p>';
+            } else {
+                logContent.innerHTML = locationLog.slice(-20).reverse().map(entry => `
+                    <div class="location-log">
+                        <strong>${entry.timestamp.toLocaleTimeString()}</strong><br>
+                        <small>Action: ${entry.action || 'Location update'}</small><br>
+                        ${entry.voterName ? `<small>Target: ${entry.voterName} (${Math.round(entry.distance || 0)}m away)</small><br>` : ''}
+                        <small>Coords: ${entry.lat.toFixed(6)}, ${entry.lng.toFixed(6)}</small><br>
+                        <small>Accuracy: ${Math.round(entry.accuracy || currentAccuracy || 0)}m</small>
+                    </div>
+                `).join('');
+            }
+            
+            modal.show();
+        }
+
+        function exportLocationData() {
+            if (locationPath.length === 0) {
+                showNotification('No location data to export', 'warning');
+                return;
+            }
+
+            // Generate KML file
+            const kmlContent = generateKMLFile();
+            downloadFile(kmlContent, `canvassing-path-${new Date().toISOString().split('T')[0]}.kml`, 'application/vnd.google-earth.kml+xml');
+            showNotification('Location data exported as KML', 'success');
+        }
+
+        function generateKMLFile() {
+            const kmlHeader = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+<name>Canvassing Path - ${new Date().toLocaleDateString()}</name>
+<description>Door-to-door canvassing route and locations</description>
+
+<Style id="pathStyle">
+<LineStyle>
+<color>ff0000ff</color>
+<width>3</width>
+</LineStyle>
+</Style>
+
+<Style id="voterStyle">
+<IconStyle>
+<color>ff00ff00</color>
+<scale>1.2</scale>
+<Icon>
+<href>http://maps.google.com/mapfiles/kml/pal2/icon10.png</href>
+</Icon>
+</IconStyle>
+</Style>
+
+<Placemark>
+<name>Canvassing Path</name>
+<styleUrl>#pathStyle</styleUrl>
+<LineString>
+<coordinates>`;
+
+            const coordinates = locationPath.map(point => `${point.lng},${point.lat},0`).join(' ');
+            
+            const kmlMiddle = coordinates + `</coordinates>
+</LineString>
+</Placemark>`;
+
+            // Add visited voters as placemarks
+            const visitedVoters = votersData.filter(v => v.visited && v.visitedAt);
+            const voterPlacemarks = visitedVoters.map(voter => `
+<Placemark>
+<name>${voter.name}</name>
+<description>
+Address: ${voter.address}
+Party: ${voter.party}
+Visited: ${new Date(voter.visitedAt).toLocaleString()}
+Present: ${voter.present ? 'Yes' : 'No'}
+Will Vote: ${voter.willVote ? 'Yes' : 'No'}
+Notes: ${voter.notes}
+</description>
+<styleUrl>#voterStyle</styleUrl>
+<Point>
+<coordinates>${voter.lng},${voter.lat},0</coordinates>
+</Point>
+</Placemark>`).join('');
+
+            const kmlFooter = `
+${voterPlacemarks}
+</Document>
+</kml>`;
+
+            return kmlHeader + kmlMiddle + kmlFooter;
+        }
+
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        function saveFinalPathData() {
+            // Save final session data
+            const sessionData = {
+                startTime: startTrackingTime,
+                endTime: new Date(),
+                totalDistance: totalPathDistance,
+                totalLocations: locationPath.length,
+                visitorsCompleted: votersData.filter(v => v.visited && v.visitedAt > startTrackingTime).length,
+                path: locationPath,
+                log: locationLog
+            };
+            
+            // Store in localStorage for admin access
+            const existingSessions = JSON.parse(localStorage.getItem('canvassing-sessions') || '[]');
+            existingSessions.push(sessionData);
+            localStorage.setItem('canvassing-sessions', JSON.stringify(existingSessions));
+        }
+
+        // Dashboard switching
+        function switchToField() {
+            document.body.className = 'field-dashboard';
+            document.getElementById('fieldBtn').className = 'btn btn-sm btn-success';
+            document.getElementById('adminBtn').className = 'btn btn-sm btn-outline-primary';
+            isDashboardField = true;
+            
+            // Reinitialize map for field view
+            setTimeout(() => {
+                map.invalidateSize();
+                if (canvasserLocation) {
+                    map.setView([canvasserLocation.lat, canvasserLocation.lng], 16);
+                }
+            }, 100);
+        }
+
+        function switchToAdmin() {
+            document.body.className = 'admin-dashboard';
+            document.getElementById('adminBtn').className = 'btn btn-sm btn-success';
+            document.getElementById('fieldBtn').className = 'btn btn-sm btn-outline-primary';
+            isDashboardField = false;
+            
+            // Reinitialize map for admin view
+            setTimeout(() => {
+                map.invalidateSize();
+                if (filteredVoters.length > 0) {
+                    const group = new L.featureGroup(Object.values(markers));
+                    map.fitBounds(group.getBounds().pad(0.1));
+                }
+            }, 100);
+            
+            updateCanvasserTracking();
+            generateSummary();
+        }
 
         // Initialize Leaflet map
         function initializeMap() {
-            map = L.map('map').setView([33.1507, -96.8236], 13); // Frisco, TX
+            map = L.map('map').setView([33.1507, -96.8236], 13);
             
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors'
@@ -440,14 +1407,15 @@
                     willVote: false,
                     nextTime: false,
                     supportLevel: '',
-                    visitedAt: null
+                    visitedAt: null,
+                    assignedTo: null // For worker assignment
                 };
                 
                 votersData.push(voter);
             }
             
             populateFilters();
-            applyFilters(); // This will set filteredVoters and update display
+            applyFilters();
             updateCounts();
         }
 
@@ -510,10 +1478,38 @@
                 markers[voter.id] = marker;
             });
 
-            // Fit map to show all filtered markers if there are any
-            if (voters.length > 0) {
+            // Add canvasser location marker if available
+            updateCanvasserMarker();
+
+            // Fit map to show all filtered markers if there are any and in admin view
+            if (voters.length > 0 && !isDashboardField) {
                 const group = new L.featureGroup(Object.values(markers));
                 map.fitBounds(group.getBounds().pad(0.1));
+            }
+        }
+
+        // Update canvasser location marker
+        function updateCanvasserMarker() {
+            if (canvasserMarker) {
+                map.removeLayer(canvasserMarker);
+            }
+            
+            if (canvasserLocation) {
+                canvasserMarker = L.marker([canvasserLocation.lat, canvasserLocation.lng], {
+                    icon: L.divIcon({
+                        className: 'canvasser-marker',
+                        html: '<div style="background: #ff6b6b; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border: 2px solid white;"><i class="fas fa-user" style="font-size: 10px;"></i></div>',
+                        iconSize: [20, 20]
+                    })
+                }).addTo(map);
+                
+                canvasserMarker.bindPopup(`
+                    <div class="text-center">
+                        <strong>Canvasser Location</strong><br>
+                        <small>Demo User</small><br>
+                        <small>Time in area: ${timeInCurrentArea}s</small>
+                    </div>
+                `);
             }
         }
 
@@ -523,13 +1519,19 @@
             const streets = [...new Set(votersData.map(v => v.address.split(' ').slice(1).join(' ')))].sort();
             const precincts = [...new Set(votersData.map(v => v.precinct))].sort();
 
+            // Admin filters
             populateSelect('zipFilter', zips);
             populateSelect('streetFilter', streets);
             populateSelect('precinctFilter', precincts);
+            
+            // Field filters
+            populateSelect('fieldStreetFilter', streets);
         }
 
         function populateSelect(elementId, options) {
             const select = document.getElementById(elementId);
+            if (!select) return;
+            
             // Keep the first option (All...)
             while (select.children.length > 1) {
                 select.removeChild(select.lastChild);
@@ -545,11 +1547,11 @@
 
         // Apply filters
         function applyFilters() {
-            const zipFilter = document.getElementById('zipFilter').value;
-            const partyFilter = document.getElementById('partyFilter').value;
-            const streetFilter = document.getElementById('streetFilter').value;
-            const precinctFilter = document.getElementById('precinctFilter').value;
-            const statusFilter = document.getElementById('statusFilter').value;
+            const zipFilter = document.getElementById('zipFilter')?.value || '';
+            const partyFilter = document.getElementById('partyFilter')?.value || '';
+            const streetFilter = document.getElementById('streetFilter')?.value || '';
+            const precinctFilter = document.getElementById('precinctFilter')?.value || '';
+            const statusFilter = document.getElementById('statusFilter')?.value || '';
 
             filteredVoters = votersData.filter(voter => {
                 if (zipFilter && voter.zip !== zipFilter) return false;
@@ -562,23 +1564,43 @@
             });
 
             displayVoterList(filteredVoters);
-            addMarkersToMap(filteredVoters); // Update map to show only filtered voters
+            addMarkersToMap(filteredVoters);
         }
 
-        // Clear all filters
-        function clearFilters() {
-            document.getElementById('zipFilter').value = '';
-            document.getElementById('partyFilter').value = '';
-            document.getElementById('streetFilter').value = '';
-            document.getElementById('precinctFilter').value = '';
-            document.getElementById('statusFilter').value = '';
-            applyFilters();
+        // Apply modal filters
+        function applyModalFilters() {
+            const partyFilter = document.getElementById('modalPartyFilter')?.value || '';
+            const statusFilter = document.getElementById('modalStatusFilter')?.value || '';
+
+            // For field workers, only show their assigned voters
+            let modalFiltered;
+            if (isDashboardField) {
+                modalFiltered = votersData.filter(voter => {
+                    if (voter.assignedTo !== currentUserId) return false;
+                    if (partyFilter && voter.party !== partyFilter) return false;
+                    if (statusFilter === 'visited' && !voter.visited) return false;
+                    if (statusFilter === 'not-visited' && voter.visited) return false;
+                    return true;
+                });
+            } else {
+                // Admin sees all voters
+                modalFiltered = votersData.filter(voter => {
+                    if (partyFilter && voter.party !== partyFilter) return false;
+                    if (statusFilter === 'visited' && !voter.visited) return false;
+                    if (statusFilter === 'not-visited' && voter.visited) return false;
+                    return true;
+                });
+            }
+
+            displayModalVoterList(modalFiltered);
         }
 
         // Display voter list
         function displayVoterList(voters = filteredVoters) {
             const voterList = document.getElementById('voterList');
             const listCount = document.getElementById('listCount');
+            
+            if (!voterList || !listCount) return;
             
             listCount.textContent = voters.length;
             
@@ -587,7 +1609,7 @@
                 return;
             }
             
-            voterList.innerHTML = voters.map(voter => {
+            voterList.innerHTML = voters.slice(0, 50).map(voter => { // Limit to 50 for performance
                 const partyClass = `party-${voter.party.toLowerCase()}`;
                 const visitedStatus = voter.visited ? 'visited' : '';
                 const currentStatus = currentVoter && currentVoter.id === voter.id ? 'current' : '';
@@ -604,6 +1626,55 @@
                                     <br><small class="text-muted">${voter.address}</small>
                                     <br><small><span class="badge" style="background-color: ${getPartyColor(voter.party)}; color: white; font-size: 0.7rem;">${voter.party}</span> | ${voter.ageClass}</small>
                                     ${voter.visited ? `<br><small class="text-success"><i class="fas fa-check"></i> Visited ${new Date(voter.visitedAt).toLocaleDateString()}</small>` : ''}
+                                </div>
+                                <div class="text-end">
+                                    ${voter.visited ? '<span class="badge bg-success status-badge">✓</span>' : '<span class="badge bg-secondary status-badge">○</span>'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            if (voters.length > 50) {
+                voterList.innerHTML += `<p class="text-muted text-center mt-2">Showing first 50 of ${voters.length} voters. Use filters to narrow results.</p>`;
+            }
+        }
+
+        // Clear all filters
+        function clearFilters() {
+            document.getElementById('zipFilter').value = '';
+            document.getElementById('partyFilter').value = '';
+            document.getElementById('streetFilter').value = '';
+            document.getElementById('precinctFilter').value = '';
+            document.getElementById('statusFilter').value = '';
+            applyFilters();
+        }
+
+        // Display modal voter list
+        function displayModalVoterList(voters) {
+            const modalVoterList = document.getElementById('modalVoterList');
+            if (!modalVoterList) return;
+            
+            if (voters.length === 0) {
+                modalVoterList.innerHTML = '<p class="text-muted text-center">No voters match the current filters.</p>';
+                return;
+            }
+            
+            modalVoterList.innerHTML = voters.map(voter => {
+                const partyClass = `party-${voter.party.toLowerCase()}`;
+                const visitedStatus = voter.visited ? 'visited' : '';
+                
+                return `
+                    <div class="voter-card card ${partyClass} ${visitedStatus}" 
+                         onclick="selectVoterFromModal(${voter.id})"
+                         style="cursor: pointer;">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <strong>${voter.name}</strong>
+                                    <br><small class="text-muted">${voter.address}</small>
+                                    <br><small><span class="badge" style="background-color: ${getPartyColor(voter.party)}; color: white; font-size: 0.7rem;">${voter.party}</span></small>
                                 </div>
                                 <div class="text-end">
                                     ${voter.visited ? '<span class="badge bg-success status-badge">✓</span>' : '<span class="badge bg-secondary status-badge">○</span>'}
@@ -630,26 +1701,30 @@
             currentVoter = votersData.find(v => v.id === voterId);
             if (!currentVoter) return;
 
-            // Update map view - zoom to selected voter
-            map.setView([currentVoter.lat, currentVoter.lng], 17);
+            // Update map view based on dashboard type
+            if (isDashboardField) {
+                map.setView([currentVoter.lat, currentVoter.lng], 17);
+            } else {
+                map.setView([currentVoter.lat, currentVoter.lng], 16);
+            }
 
             // Highlight the selected marker
             Object.values(markers).forEach(marker => {
                 marker.setStyle({ weight: marker === markers[voterId] ? 4 : 2 });
             });
 
-            // Update current voter card
-            document.getElementById('currentVoterCard').style.display = 'block';
-            document.getElementById('currentVoterInfo').innerHTML = `
-                <div class="d-flex align-items-center mb-2">
-                    <h6 class="mb-0 me-2">${currentVoter.name}</h6>
-                    <span class="badge" style="background-color: ${getPartyColor(currentVoter.party)}; color: white;">${currentVoter.party}</span>
-                </div>
-                <p class="mb-1"><i class="fas fa-map-marker-alt"></i> <strong>Address:</strong> ${currentVoter.address}, ${currentVoter.city}, ${currentVoter.state} ${currentVoter.zip}</p>
-                <p class="mb-1"><i class="fas fa-users"></i> <strong>Demographics:</strong> ${currentVoter.ageClass}, ${currentVoter.race}, ${currentVoter.gender}</p>
-                <p class="mb-1"><i class="fas fa-vote-yea"></i> <strong>Precinct:</strong> ${currentVoter.precinct}</p>
-                ${currentVoter.visited ? `<p class="mb-0"><small class="text-success"><i class="fas fa-check-circle"></i> Visited on ${new Date(currentVoter.visitedAt).toLocaleString()}</small></p>` : ''}
-            `;
+            // Update current assignment in field view
+            if (isDashboardField) {
+                document.getElementById('currentAssignment').style.display = 'block';
+                document.getElementById('currentVoterInfo').innerHTML = `
+                    <div class="d-flex align-items-center mb-2">
+                        <h6 class="mb-0 me-2">${currentVoter.name}</h6>
+                        <span class="badge" style="background-color: ${getPartyColor(currentVoter.party)}; color: white;">${currentVoter.party}</span>
+                    </div>
+                    <p class="mb-1"><i class="fas fa-map-marker-alt"></i> ${currentVoter.address}</p>
+                    <p class="mb-0"><small>${currentVoter.ageClass} | ${currentVoter.precinct}</small></p>
+                `;
+            }
 
             // Load existing notes if visited
             if (currentVoter.visited) {
@@ -662,35 +1737,115 @@
                 document.getElementById('notesForm').reset();
             }
 
-            // Update voter list display
+            // Update displays
             displayVoterList();
             updateCounts();
+        }
 
-            // Scroll to notes form on mobile
-            if (window.innerWidth < 768) {
-                document.getElementById('currentVoterCard').scrollIntoView({ behavior: 'smooth' });
+        // Select voter from modal
+        function selectVoterFromModal(voterId) {
+            selectVoter(voterId);
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('voterListModal'));
+            modal.hide();
+        }
+
+        // Field-specific functions
+        function findNearestVoter() {
+            if (!canvasserLocation) {
+                alert('GPS location not available. Please start tracking first.');
+                return;
+            }
+
+            const unvisitedVoters = votersData.filter(v => !v.visited);
+            if (unvisitedVoters.length === 0) {
+                alert('All voters have been visited!');
+                return;
+            }
+
+            // Find nearest unvisited voter
+            let nearest = null;
+            let minDistance = Infinity;
+
+            unvisitedVoters.forEach(voter => {
+                const distance = calculateDistance(
+                    canvasserLocation.lat, canvasserLocation.lng,
+                    voter.lat, voter.lng
+                );
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearest = voter;
+                }
+            });
+
+            if (nearest) {
+                selectVoter(nearest.id);
             }
         }
 
-        // Simulate GPS tracking
-        function simulateGPSTracking() {
+        function getDirections() {
+            if (!currentVoter) {
+                alert('Please select a voter first.');
+                return;
+            }
+
+            // Open Google Maps directions
+            const url = `https://www.google.com/maps/dir/?api=1&destination=${currentVoter.lat},${currentVoter.lng}`;
+            window.open(url, '_blank');
+        }
+
+        function markNotHome() {
+            if (!currentVoter) {
+                alert('Please select a voter first.');
+                return;
+            }
+
+            // Quick mark as not home
+            currentVoter.visited = true;
+            currentVoter.visitedAt = new Date().toISOString();
+            currentVoter.present = false;
+            currentVoter.notes = 'Not home';
+
+            // Update marker
+            if (markers[currentVoter.id]) {
+                markers[currentVoter.id].setStyle({ 
+                    fillOpacity: 0.6,
+                    color: '#28a745',
+                    weight: 3
+                });
+            }
+
+            applyFilters();
+            updateCounts();
+            
+            showNotification('Marked as "Not Home"', 'info');
+        }
+
+        function startGPSTracking() {
             if (locationWatchId) {
                 stopGPSTracking();
                 return;
             }
 
+            // Simulate GPS tracking
             document.getElementById('locationStatus').textContent = 'Active';
             
             locationWatchId = setInterval(() => {
-                // Simulate GPS movement around the map
+                // Simulate GPS movement
                 const centerLat = 33.1507;
                 const centerLng = -96.8236;
                 const randomLat = centerLat + (Math.random() - 0.5) * 0.01;
                 const randomLng = centerLng + (Math.random() - 0.5) * 0.01;
                 
                 canvasserLocation = { lat: randomLat, lng: randomLng };
+                updateCanvasserMarker();
                 updateProximityTracking();
-            }, 2000);
+                
+                // Update canvasser data for admin view
+                canvassers[0].location = canvasserLocation;
+                canvassers[0].lastUpdate = new Date();
+                updateCanvasserTracking();
+            }, 3000);
         }
 
         function stopGPSTracking() {
@@ -710,7 +1865,7 @@
                 currentVoter.lat, currentVoter.lng
             );
 
-            const distanceInFeet = distance * 3280.84; // Convert km to feet
+            const distanceInFeet = distance * 3280.84;
             
             if (distanceInFeet <= 50) {
                 timeInCurrentArea++;
@@ -735,44 +1890,478 @@
             return R * c;
         }
 
-        // Auto-visit nearby voters (for demo)
-        function autoVisitNearby() {
-            const unvisitedVoters = votersData.filter(v => !v.visited);
-            const toVisit = unvisitedVoters.slice(0, Math.min(10, unvisitedVoters.length));
+        // Update canvasser tracking (admin view)
+        function updateCanvasserTracking() {
+            const trackingContainer = document.getElementById('canvasserTracking');
+            if (!trackingContainer) return;
+
+            trackingContainer.innerHTML = canvassers.map(canvasser => {
+                const timeSinceUpdate = Math.floor((new Date() - canvasser.lastUpdate) / 1000);
+                const statusClass = timeSinceUpdate < 30 ? 'active' : 'inactive';
+                const statusText = timeSinceUpdate < 30 ? 'Active' : 'Inactive';
+                const assignedCount = canvasser.assignedVoters ? canvasser.assignedVoters.length : 0;
+                const completedCount = assignedCount > 0 ? votersData.filter(v => v.assignedTo === canvasser.id && v.visited).length : 0;
+                
+                return `
+                    <div class="canvasser-tracker ${statusClass}" onclick="selectWorkerForReport(${canvasser.id})">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>${canvasser.name}</strong> 
+                                <small class="text-muted">(ID: ${canvasser.id})</small>
+                                <br><small>Assigned: ${assignedCount} | Completed: ${completedCount}</small>
+                                <br><small>Progress: ${assignedCount > 0 ? Math.round((completedCount/assignedCount)*100) : 0}%</small>
+                                ${canvasser.currentVoter ? `<br><small class="text-info">At: ${canvasser.currentVoter.name}</small>` : ''}
+                            </div>
+                            <div class="text-end">
+                                <span class="badge ${statusClass === 'active' ? 'bg-success' : 'bg-danger'}">${statusText}</span>
+                                <br><small class="text-muted">${timeSinceUpdate}s ago</small>
+                            </div>
+                        </div>
+                        ${canvasser.location ? `
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-map-marker-alt"></i> 
+                                    ${canvasser.location.lat.toFixed(4)}, ${canvasser.location.lng.toFixed(4)}
+                                </small>
+                                <button class="btn btn-sm btn-outline-primary ms-2" onclick="event.stopPropagation(); trackWorker(${canvasser.id})">
+                                    <i class="fas fa-crosshairs"></i> Track
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            // Update live stats
+            const activeCount = canvassers.filter(c => (new Date() - c.lastUpdate) / 1000 < 30).length;
+            const totalVisits = canvassers.reduce((sum, c) => {
+                return sum + (c.assignedVoters ? votersData.filter(v => v.assignedTo === c.id && v.visited).length : 0);
+            }, 0);
+            const visitedCount = votersData.filter(v => v.visited).length;
             
-            toVisit.forEach((voter, index) => {
-                setTimeout(() => {
-                    voter.visited = true;
-                    voter.visitedAt = new Date().toISOString();
-                    voter.present = Math.random() > 0.3;
-                    voter.willVote = Math.random() > 0.4;
-                    voter.nextTime = Math.random() > 0.7;
-                    voter.supportLevel = ['strong-support', 'lean-support', 'undecided', 'lean-oppose'][Math.floor(Math.random() * 4)];
-                    voter.notes = `Demo visit - ${voter.present ? 'Home' : 'Not home'}`;
-                    
-                    // Update marker style if it's currently shown
-                    if (markers[voter.id]) {
-                        markers[voter.id].setStyle({ 
-                            fillOpacity: 0.6,
-                            color: '#28a745',
-                            weight: 3
-                        });
-                    }
-                    
-                    if (index === toVisit.length - 1) {
-                        applyFilters(); // Refresh both list and map
-                        updateCounts();
-                    }
-                }, index * 500);
-            });
+            if (document.getElementById('activeCanvassers')) {
+                document.getElementById('activeCanvassers').textContent = activeCount;
+                document.getElementById('hourlyRate').textContent = Math.round(totalVisits * 60 / Math.max(1, timeInCurrentArea / 60));
+                document.getElementById('completionRate').textContent = Math.round((visitedCount / votersData.length) * 100) + '%';
+                document.getElementById('activeWorkersCount').textContent = activeCount;
+            }
         }
 
-        // Handle notes form submission
+        function selectWorkerForReport(workerId) {
+            const workerSelect = document.getElementById('workerSelect');
+            if (workerSelect) {
+                workerSelect.value = workerId;
+                generateWorkerReport();
+            }
+        }
+
+        function trackWorker(workerId) {
+            const worker = canvassers.find(w => w.id === workerId);
+            if (worker && worker.location) {
+                map.setView([worker.location.lat, worker.location.lng], 16);
+                showNotification(`Now tracking ${worker.name}`, 'info');
+            }
+        }
+
+        // Show notification
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            notification.style.cssText = 'top: 70px; right: 20px; z-index: 1050; min-width: 250px;';
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'}"></i> ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 3000);
+        }
+
+        // Assignment Management Functions
+        function assignVotersToWorkers() {
+            const totalToAssign = parseInt(document.getElementById('totalToAssign').value);
+            const workerCount = parseInt(document.getElementById('activeWorkers').value);
+            const perWorker = Math.ceil(totalToAssign / workerCount);
+            
+            document.getElementById('perWorkerCount').textContent = perWorker;
+            
+            // Simulate assignment
+            const unassignedVoters = votersData.filter(v => !v.assignedTo);
+            const toAssign = unassignedVoters.slice(0, totalToAssign);
+            
+            // Clear previous assignments
+            canvassers.forEach(worker => worker.assignedVoters = []);
+            
+            // Assign voters to workers
+            toAssign.forEach((voter, index) => {
+                const workerIndex = Math.floor(index / perWorker);
+                const workerId = (workerIndex % workerCount) + 1;
+                voter.assignedTo = workerId;
+                
+                // Add to worker's list
+                let worker = canvassers.find(w => w.id === workerId);
+                if (!worker) {
+                    worker = {
+                        id: workerId,
+                        name: `Worker ${workerId}`,
+                        status: "active",
+                        currentVoter: null,
+                        location: null,
+                        timeAtLocation: 0,
+                        todayVisits: 0,
+                        assignedVoters: [],
+                        lastUpdate: new Date()
+                    };
+                    canvassers.push(worker);
+                }
+                worker.assignedVoters.push(voter.id);
+            });
+            
+            updateCanvasserTracking();
+            updateFieldAssignmentInfo();
+            showNotification(`Successfully assigned ${totalToAssign} voters to ${workerCount} workers!`);
+        }
+
+        // Update assignment calculations
+        document.addEventListener('change', function(e) {
+            if (e.target.id === 'totalToAssign' || e.target.id === 'activeWorkers') {
+                const total = parseInt(document.getElementById('totalToAssign').value) || 0;
+                const workers = parseInt(document.getElementById('activeWorkers').value) || 1;
+                document.getElementById('perWorkerCount').textContent = Math.ceil(total / workers);
+            }
+        });
+
+        // Google Sheets Integration
+        function exportToGoogleSheets() {
+            // Simulate Google Sheets export
+            const csvData = generateCSVData();
+            downloadCSV(csvData, 'voter-assignments.csv');
+            showNotification('Data exported! Upload this CSV to Google Sheets.', 'info');
+        }
+
+        function generateCSVData() {
+            const headers = ['Worker ID', 'Worker Name', 'Voter ID', 'Voter Name', 'Address', 'Party', 'Phone', 'Status', 'Notes'];
+            const rows = [headers.join(',')];
+            
+            votersData.forEach(voter => {
+                if (voter.assignedTo) {
+                    const worker = canvassers.find(w => w.id === voter.assignedTo);
+                    const row = [
+                        voter.assignedTo,
+                        worker ? worker.name : 'Unknown',
+                        voter.id,
+                        voter.name,
+                        `"${voter.address}, ${voter.city}, ${voter.state} ${voter.zip}"`,
+                        voter.party,
+                        '555-0000', // Simulated phone
+                        voter.visited ? 'Completed' : 'Pending',
+                        `"${voter.notes}"`
+                    ];
+                    rows.push(row.join(','));
+                }
+            });
+            
+            return rows.join('\n');
+        }
+
+        function downloadCSV(csvData, filename) {
+            const blob = new Blob([csvData], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Messaging System
+        function sendMessage() {
+            const target = document.getElementById('messageTarget').value;
+            const text = document.getElementById('messageText').value.trim();
+            
+            if (!text) {
+                alert('Please enter a message.');
+                return;
+            }
+            
+            const message = {
+                id: Date.now(),
+                from: 'Admin',
+                to: target === 'all' ? 'All Workers' : canvassers.find(w => w.id == target)?.name || 'Unknown',
+                text: text,
+                timestamp: new Date(),
+                read: false
+            };
+            
+            messageLog.push(message);
+            
+            // Show message to field worker if targeting current user
+            if (target === 'all' || target == currentUserId) {
+                showFieldMessage(message);
+            }
+            
+            updateMessageLog();
+            document.getElementById('messageText').value = '';
+            showNotification('Message sent successfully!');
+        }
+
+        function showFieldMessage(message) {
+            const messagesPanel = document.getElementById('messagesPanel');
+            const messageContent = document.getElementById('messageContent');
+            
+            messageContent.innerHTML = `
+                <strong>From: ${message.from}</strong><br>
+                <small class="text-muted">${message.timestamp.toLocaleString()}</small><br>
+                <p class="mt-2 mb-0">${message.text}</p>
+            `;
+            
+            messagesPanel.style.display = 'block';
+        }
+
+        function dismissMessage() {
+            document.getElementById('messagesPanel').style.display = 'none';
+        }
+
+        function updateMessageLog() {
+            const logContainer = document.getElementById('messageLog');
+            if (!logContainer) return;
+            
+            if (messageLog.length === 0) {
+                logContainer.innerHTML = '<p class="text-muted">No messages sent yet.</p>';
+                return;
+            }
+            
+            logContainer.innerHTML = messageLog.map(msg => `
+                <div class="border-bottom pb-2 mb-2">
+                    <div class="d-flex justify-content-between">
+                        <strong>${msg.from} → ${msg.to}</strong>
+                        <small class="text-muted">${msg.timestamp.toLocaleTimeString()}</small>
+                    </div>
+                    <p class="mb-0 mt-1">${msg.text}</p>
+                </div>
+            `).join('');
+        }
+
+        function clearMessageLog() {
+            messageLog = [];
+            updateMessageLog();
+        }
+
+        // Worker Report Generation
+        function generateWorkerReport() {
+            const workerId = parseInt(document.getElementById('workerSelect').value);
+            const reportContainer = document.getElementById('workerReport');
+            
+            if (!workerId) {
+                reportContainer.innerHTML = '<p class="text-muted">Select a worker to view their performance report.</p>';
+                return;
+            }
+            
+            const worker = canvassers.find(w => w.id === workerId);
+            if (!worker) return;
+            
+            const assignedVoters = votersData.filter(v => v.assignedTo === workerId);
+            const completedVoters = assignedVoters.filter(v => v.visited);
+            const todayVisits = completedVoters.length;
+            const completionRate = assignedVoters.length > 0 ? Math.round((todayVisits / assignedVoters.length) * 100) : 0;
+            
+            // Response breakdown
+            const responses = {
+                present: completedVoters.filter(v => v.present).length,
+                willVote: completedVoters.filter(v => v.willVote).length,
+                nextTime: completedVoters.filter(v => v.nextTime).length
+            };
+            
+            reportContainer.innerHTML = `
+                <div class="card border-0" style="background: #f8f9fa;">
+                    <div class="card-body p-2">
+                        <h6>${worker.name} - Performance Report</h6>
+                        <div class="row text-center mb-2">
+                            <div class="col-4">
+                                <div class="h6">${assignedVoters.length}</div>
+                                <small>Assigned</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="h6 text-success">${todayVisits}</div>
+                                <small>Completed</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="h6 text-primary">${completionRate}%</div>
+                                <small>Rate</small>
+                            </div>
+                        </div>
+                        
+                        ${todayVisits > 0 ? `
+                        <div class="border-top pt-2">
+                            <small class="text-muted">Response Quality:</small><br>
+                            <small>Present: ${responses.present}/${todayVisits} (${Math.round((responses.present/todayVisits)*100)}%)</small><br>
+                            <small>Will Vote: ${responses.willVote}/${todayVisits} (${Math.round((responses.willVote/todayVisits)*100)}%)</small><br>
+                            <small>Next Time: ${responses.nextTime}/${todayVisits} (${Math.round((responses.nextTime/todayVisits)*100)}%)</small>
+                        </div>
+                        ` : ''}
+                        
+                        <div class="border-top pt-2 mt-2">
+                            <small class="text-muted">Status: ${worker.status === 'active' ? '🟢 Active' : '🔴 Inactive'}</small><br>
+                            <small class="text-muted">Last Update: ${worker.lastUpdate.toLocaleTimeString()}</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Field Filtering Functions with enhanced filters
+        function applyFieldFilters() {
+            const partyFilter = document.getElementById('fieldPartyFilter').value;
+            const statusFilter = document.getElementById('fieldStatusFilter').value;
+            const streetFilter = document.getElementById('fieldStreetFilter').value;
+            const ageFilter = document.getElementById('fieldAgeFilter').value;
+            const raceFilter = document.getElementById('fieldRaceFilter').value;
+            const genderFilter = document.getElementById('fieldGenderFilter').value;
+            
+            // Apply filters to current worker's assigned voters
+            const currentWorker = canvassers.find(w => w.id === currentUserId);
+            if (!currentWorker) return;
+            
+            let assignedVoters = votersData.filter(v => v.assignedTo === currentUserId);
+            
+            if (partyFilter) assignedVoters = assignedVoters.filter(v => v.party === partyFilter);
+            if (statusFilter === 'visited') assignedVoters = assignedVoters.filter(v => v.visited);
+            if (statusFilter === 'not-visited') assignedVoters = assignedVoters.filter(v => !v.visited);
+            if (streetFilter) assignedVoters = assignedVoters.filter(v => v.address.includes(streetFilter));
+            if (ageFilter) assignedVoters = assignedVoters.filter(v => v.ageClass === ageFilter);
+            if (raceFilter) assignedVoters = assignedVoters.filter(v => v.race === raceFilter);
+            if (genderFilter) assignedVoters = assignedVoters.filter(v => v.gender === genderFilter);
+            
+            // Update map to show only filtered assigned voters
+            addMarkersToMap(assignedVoters);
+            showNotification(`Showing ${assignedVoters.length} voters matching your filters.`, 'info');
+        }
+
+        function clearFieldFilters() {
+            document.getElementById('fieldPartyFilter').value = '';
+            document.getElementById('fieldStatusFilter').value = '';
+            document.getElementById('fieldStreetFilter').value = '';
+            document.getElementById('fieldAgeFilter').value = '';
+            document.getElementById('fieldRaceFilter').value = '';
+            document.getElementById('fieldGenderFilter').value = '';
+            
+            // Show all assigned voters
+            const assignedVoters = votersData.filter(v => v.assignedTo === currentUserId);
+            addMarkersToMap(assignedVoters);
+        }
+
+        // Update field assignment info with tracking data
+        function updateFieldAssignmentInfo() {
+            const currentWorker = canvassers.find(w => w.id === currentUserId);
+            if (!currentWorker) return;
+            
+            const assignedVoters = votersData.filter(v => v.assignedTo === currentUserId);
+            const completedVoters = assignedVoters.filter(v => v.visited);
+            const progressPercent = assignedVoters.length > 0 ? Math.round((completedVoters.length / assignedVoters.length) * 100) : 0;
+            
+            if (document.getElementById('assignedCount')) {
+                document.getElementById('assignedCount').textContent = assignedVoters.length;
+                document.getElementById('fieldVisitedCount').textContent = completedVoters.length;
+                document.getElementById('fieldProgressPercent').textContent = progressPercent + '%';
+                
+                // Update modal stats
+                if (document.getElementById('modalAssignedCount')) {
+                    document.getElementById('modalAssignedCount').textContent = assignedVoters.length;
+                    document.getElementById('modalCompletedCount').textContent = completedVoters.length;
+                    document.getElementById('modalPendingCount').textContent = assignedVoters.length - completedVoters.length;
+                }
+            }
+
+            // Update tracking data
+            const totalTimeMinutes = startTrackingTime ? Math.round((new Date() - startTrackingTime) / 60000) : 0;
+            if (document.getElementById('totalFieldTime')) {
+                document.getElementById('totalFieldTime').textContent = totalTimeMinutes;
+            }
+        }
+
+        // Enhanced voter selection with proximity checking
+        function selectVoter(voterId) {
+            currentVoter = votersData.find(v => v.id === voterId);
+            if (!currentVoter) return;
+
+            // Update map view based on dashboard type
+            if (isDashboardField) {
+                map.setView([currentVoter.lat, currentVoter.lng], 17);
+            } else {
+                map.setView([currentVoter.lat, currentVoter.lng], 16);
+            }
+
+            // Highlight the selected marker
+            Object.values(markers).forEach(marker => {
+                marker.setStyle({ weight: marker === markers[voterId] ? 4 : 2 });
+            });
+
+            // Reset time in current area
+            timeInCurrentArea = 0;
+
+            // Update current assignment in field view
+            if (isDashboardField) {
+                document.getElementById('currentAssignment').style.display = 'block';
+                document.getElementById('currentVoterInfo').innerHTML = `
+                    <div class="d-flex align-items-center mb-2">
+                        <h6 class="mb-0 me-2">${currentVoter.name}</h6>
+                        <span class="badge" style="background-color: ${getPartyColor(currentVoter.party)}; color: white;">${currentVoter.party}</span>
+                    </div>
+                    <p class="mb-1"><i class="fas fa-map-marker-alt"></i> ${currentVoter.address}</p>
+                    <p class="mb-1"><small>${currentVoter.ageClass} | ${currentVoter.race} | ${currentVoter.gender}</small></p>
+                    <p class="mb-0"><small>Precinct: ${currentVoter.precinct}</small></p>
+                `;
+            }
+
+            // Load existing notes if visited
+            if (currentVoter.visited) {
+                document.getElementById('present').checked = currentVoter.present;
+                document.getElementById('willVote').checked = currentVoter.willVote;
+                document.getElementById('nextTime').checked = currentVoter.nextTime;
+                document.getElementById('voterNotes').value = currentVoter.notes;
+                document.getElementById('supportLevel').value = currentVoter.supportLevel;
+            } else {
+                document.getElementById('notesForm').reset();
+            }
+
+            // Check proximity immediately if location is available
+            if (canvasserLocation) {
+                checkProximityToCurrentVoter();
+            } else {
+                locationValidationStatus = false;
+            }
+
+            // Update form validation
+            updateFormValidation();
+
+            // Update displays
+            displayVoterList();
+            updateCounts();
+
+            // Scroll to notes form on mobile
+            if (window.innerWidth < 768) {
+                document.getElementById('currentAssignment').scrollIntoView({ behavior: 'smooth' });
+            }
+
+            showNotification(`Selected: ${currentVoter.name}`, 'info');
+        }
+
+        // Handle notes form submission with proximity validation
         document.getElementById('notesForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
             if (!currentVoter) {
                 alert('Please select a voter first');
+                return;
+            }
+
+            // Check proximity validation
+            if (!locationValidationStatus) {
+                showNotification('You must be within 20 meters of the voter address to submit this form', 'error');
                 return;
             }
 
@@ -785,7 +2374,17 @@
             currentVoter.notes = document.getElementById('voterNotes').value;
             currentVoter.supportLevel = document.getElementById('supportLevel').value;
 
-            // Update marker style if it's currently shown
+            // Add location data to the visit record
+            if (canvasserLocation) {
+                currentVoter.visitLocation = {
+                    lat: canvasserLocation.lat,
+                    lng: canvasserLocation.lng,
+                    accuracy: currentAccuracy,
+                    timeSpent: timeInCurrentArea
+                };
+            }
+
+            // Update marker style
             if (markers[currentVoter.id]) {
                 markers[currentVoter.id].setStyle({ 
                     fillOpacity: 0.6,
@@ -794,26 +2393,32 @@
                 });
             }
 
+            // Update canvasser stats
+            const worker = canvassers.find(w => w.id === currentUserId);
+            if (worker) {
+                worker.todayVisits++;
+            }
+
+            // Clear current assignment
+            if (isDashboardField) {
+                document.getElementById('currentAssignment').style.display = 'none';
+                document.getElementById('proximityAlert').style.display = 'none';
+            }
+            currentVoter = null;
+            timeInCurrentArea = 0;
+            locationValidationStatus = false;
+
             // Update displays
-            applyFilters(); // Refresh both list and map
+            applyFilters();
             updateCounts();
+            updateCanvasserTracking();
+            updateFieldAssignmentInfo();
             
-            // Show success message
-            const successAlert = document.createElement('div');
-            successAlert.className = 'alert alert-success alert-dismissible fade show position-fixed';
-            successAlert.style.cssText = 'top: 70px; right: 20px; z-index: 1050; min-width: 250px;';
-            successAlert.innerHTML = `
-                <i class="fas fa-check-circle"></i> Notes saved and voter marked as visited!
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-            document.body.appendChild(successAlert);
+            showNotification('Visit completed and location verified!', 'success');
             
-            // Auto-remove after 3 seconds
-            setTimeout(() => {
-                if (successAlert.parentNode) {
-                    successAlert.remove();
-                }
-            }, 3000);
+            // Reset form
+            document.getElementById('notesForm').reset();
+            updateFormValidation();
         });
 
         // Update counts
@@ -821,8 +2426,12 @@
             const totalVoters = votersData.length;
             const visitedCount = votersData.filter(v => v.visited).length;
             
-            document.getElementById('totalVoters').textContent = totalVoters;
-            document.getElementById('visitedCount').textContent = visitedCount;
+            if (document.getElementById('totalVoters')) {
+                document.getElementById('totalVoters').textContent = totalVoters;
+            }
+            if (document.getElementById('visitedCount')) {
+                document.getElementById('visitedCount').textContent = visitedCount;
+            }
         }
 
         // Generate summary
@@ -831,15 +2440,16 @@
             const totalTargeted = votersData.length;
             const totalVisited = visitedVoters.length;
             
+            const summaryContent = document.getElementById('summaryContent');
+            if (!summaryContent) return;
+            
             if (totalVisited === 0) {
-                document.getElementById('summaryContent').innerHTML = '<p class="text-muted">No visits recorded yet today.</p>';
+                summaryContent.innerHTML = '<p class="text-muted">No visits recorded yet today.</p>';
                 return;
             }
             
             // Demographics breakdown
             const partyBreakdown = {};
-            const ageBreakdown = {};
-            const raceBreakdown = {};
             const responseBreakdown = {
                 present: 0,
                 willVote: 0,
@@ -848,21 +2458,12 @@
             const supportBreakdown = {};
 
             visitedVoters.forEach(voter => {
-                // Party
                 partyBreakdown[voter.party] = (partyBreakdown[voter.party] || 0) + 1;
                 
-                // Age
-                ageBreakdown[voter.ageClass] = (ageBreakdown[voter.ageClass] || 0) + 1;
-                
-                // Race
-                raceBreakdown[voter.race] = (raceBreakdown[voter.race] || 0) + 1;
-                
-                // Responses
                 if (voter.present) responseBreakdown.present++;
                 if (voter.willVote) responseBreakdown.willVote++;
                 if (voter.nextTime) responseBreakdown.nextTime++;
                 
-                // Support
                 if (voter.supportLevel) {
                     supportBreakdown[voter.supportLevel] = (supportBreakdown[voter.supportLevel] || 0) + 1;
                 }
@@ -901,13 +2502,16 @@
                     <div class="col-12 mb-3">
                         <h6><i class="fas fa-clipboard-check"></i> Response Summary</h6>
                         <div class="d-flex justify-content-between">
-                            <span><i class="fas fa-home text-primary"></i> Present:</span> <span><strong>${responseBreakdown.present}</strong> (${Math.round((responseBreakdown.present/totalVisited)*100)}%)</span>
+                            <span><i class="fas fa-home text-primary"></i> Present:</span> 
+                            <span><strong>${responseBreakdown.present}</strong> (${Math.round((responseBreakdown.present/totalVisited)*100)}%)</span>
                         </div>
                         <div class="d-flex justify-content-between">
-                            <span><i class="fas fa-vote-yea text-success"></i> Will Vote:</span> <span><strong>${responseBreakdown.willVote}</strong> (${Math.round((responseBreakdown.willVote/totalVisited)*100)}%)</span>
+                            <span><i class="fas fa-vote-yea text-success"></i> Will Vote:</span> 
+                            <span><strong>${responseBreakdown.willVote}</strong> (${Math.round((responseBreakdown.willVote/totalVisited)*100)}%)</span>
                         </div>
                         <div class="d-flex justify-content-between">
-                            <span><i class="fas fa-clock text-warning"></i> Next Time:</span> <span><strong>${responseBreakdown.nextTime}</strong> (${Math.round((responseBreakdown.nextTime/totalVisited)*100)}%)</span>
+                            <span><i class="fas fa-clock text-warning"></i> Next Time:</span> 
+                            <span><strong>${responseBreakdown.nextTime}</strong> (${Math.round((responseBreakdown.nextTime/totalVisited)*100)}%)</span>
                         </div>
                     </div>
                     
@@ -925,8 +2529,13 @@
                 </div>
             `;
 
-            document.getElementById('summaryContent').innerHTML = summaryHTML;
+            summaryContent.innerHTML = summaryHTML;
         }
+
+        // Initialize modal filters when modal opens
+        document.getElementById('voterListModal').addEventListener('shown.bs.modal', function() {
+            applyModalFilters();
+        });
     </script>
 </body>
 </html>
